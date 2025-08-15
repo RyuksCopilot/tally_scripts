@@ -1,0 +1,56 @@
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import Optional
+from services.createVoucherService import TallyVoucherManager
+from services.updateVoucherService import TallyVoucherUpdater
+
+router = APIRouter()
+
+class VoucherRequest(BaseModel):
+    tally_url: str
+    company_name: str
+    from_ledger: str
+    to_ledger: str
+    amount: float
+    voucher_type: str
+    date: str  # Format: YYYYMMDD
+    narration: Optional[str] = None
+    voucher_guid: Optional[str] = None
+
+@router.post("/voucher/create")
+def create_voucher(data: VoucherRequest):
+    try:
+        voucher_manager = TallyVoucherManager(data.tally_url)
+        result = voucher_manager.save_voucher(data.dict(exclude={"tally_url"}), action="Create")
+        if "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
+        return {"message": "Voucher processed successfully", "data": result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    
+class VoucherData(BaseModel):
+    company_name: str
+    from_ledger: str
+    to_ledger: str
+    amount: float
+    voucher_type: str
+    date: str
+    narration: str | None = None
+
+class VoucherUpdateRequest(BaseModel):
+    tally_url: str
+    old_voucher: VoucherData
+    new_voucher: VoucherData
+
+@router.post("/voucher/update")
+def update_voucher(request: VoucherUpdateRequest):
+    try:
+        updater = TallyVoucherUpdater(tally_url=request.tally_url)
+        result = updater.update_voucher(
+            old_data=request.old_voucher.dict(),
+            new_data=request.new_voucher.dict()
+        )
+        return {"status": "success", "details": result}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
