@@ -30,13 +30,13 @@ def create_voucher(data: VoucherRequest):
     
     
 class VoucherData(BaseModel):
-    company_name: str
-    from_ledger: str
-    to_ledger: str
-    amount: float
-    voucher_type: str
-    date: str
-    narration: str | None = None
+    company_name: Optional[str] = None
+    from_ledger: Optional[str] = None
+    to_ledger: Optional[str] = None
+    amount: Optional[float] = None
+    voucher_type: Optional[str] = None
+    date: Optional[str] = None
+    narration: Optional[str] = None
 
 class VoucherUpdateRequest(BaseModel):
     tally_url: str
@@ -48,7 +48,7 @@ def update_voucher(request: VoucherUpdateRequest):
     try:
         updater = TallyVoucherUpdater(tally_url=request.tally_url)
         result = updater.update_voucher(
-            old_data=request.old_voucher.dict(),
+            old_lookup=request.old_voucher.dict(),
             new_data=request.new_voucher.dict()
         )
         return {"status": "success", "details": result}
