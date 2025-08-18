@@ -154,7 +154,8 @@ class TallyVoucherUpdater:
         
         
 
-
+        matched = []
+        
         for voucher in root.findall(".//VOUCHER"):
             # Extract basic voucher info
             vch_type = voucher.get("VCHTYPE", "")
@@ -174,6 +175,7 @@ class TallyVoucherUpdater:
             for ledger_entry in voucher.findall(".//ALLLEDGERENTRIES.LIST"):
                 name = ledger_entry.findtext("LEDGERNAME", "")
                 amount = ledger_entry.findtext("AMOUNT", "")
+                print(name,amount,search_criteria)
                 ledgers.append((name, amount))
             
             # Separate debit/credit (negative = from_ledger, positive = to_ledger)
@@ -181,19 +183,18 @@ class TallyVoucherUpdater:
             to_ledger = next((l for l, amt in ledgers if not amt.startswith("-")), None)
             abs_amount = next((amt.replace("-", "") for _, amt in ledgers if amt), None)
         
-            if "from_ledger" in search_criteria and search_criteria["from_ledger"] != from_ledger:
+            if "from_ledger" in search_criteria and search_criteria["from_ledger"] != from_ledger and search_criteria["from_ledger"] != None:
                 continue
-            if "to_ledger" in search_criteria and search_criteria["to_ledger"] != to_ledger:
+            if "to_ledger" in search_criteria and search_criteria["to_ledger"] != to_ledger and search_criteria["to_ledger"] != None:
                 continue
-            if "amount" in search_criteria:
+            if "amount" in search_criteria and search_criteria["amount"] != None:
                 criteria_amount = round(float(search_criteria["amount"]), 2)
                 voucher_amount = round(float(abs_amount), 2)
 
                 if criteria_amount != voucher_amount:
                     continue
 
-            
-            return {
+            matched.append({
             "remote_id": voucher.get("REMOTEID"),
             "company_name": company_name,
             "voucher_type": vch_type,
@@ -203,9 +204,18 @@ class TallyVoucherUpdater:
             "to_ledger": to_ledger,
             "amount": abs_amount,
             "narration": voucher.findtext("NARRATION", "")
-        }
+            })
+            
+        print(len(matched),matched)
+        
+        if len(matched) > 1:
+            raise ValueError("More than one voucher matched the given criteria.")
+        elif len(matched) < 1:
+            raise ValueError("No voucher found matching the given criteria.")    
+        
+        return matched[0]
 
-        raise ValueError("No voucher found matching the given criteria.")
+        
 
    
     
