@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from services.createVoucherService import TallyVoucherManager
 from services.updateVoucherService import TallyVoucherUpdater
-
+from services.transactionLedgerService import TallyLedgerFetcher
 router = APIRouter()
 
 class VoucherRequest(BaseModel):
@@ -42,7 +42,8 @@ class VoucherUpdateRequest(BaseModel):
     tally_url: str
     old_voucher: VoucherData
     new_voucher: VoucherData
-
+    
+    
 @router.post("/voucher/update")
 def update_voucher(request: VoucherUpdateRequest):
     try:
@@ -50,6 +51,40 @@ def update_voucher(request: VoucherUpdateRequest):
         result = updater.update_voucher(
             old_lookup=request.old_voucher.dict(),
             new_data=request.new_voucher.dict()
+        )
+        return {"status": "success", "details": result}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+class VoucherDeleteRequest(BaseModel):
+    tally_url: str
+    old_voucher: VoucherData
+    
+
+@router.post("/voucher/delete")
+def delete_voucher(request: VoucherDeleteRequest):
+    try:
+        updater = TallyVoucherUpdater(tally_url=request.tally_url)
+        result = updater.delete_voucher(
+            old_lookup=request.old_voucher.dict()
+        )
+        return {"status": "success", "details": result}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+class VoucherTransactionsRequest(BaseModel):
+    tally_url: str
+    company_name: str
+    ledger_name :str
+    
+
+@router.post("/voucher/transactions")
+def get_voucher_transactions(request: VoucherTransactionsRequest):
+    try:
+        fetcher = TallyLedgerFetcher(tally_url=request.tally_url)
+        result = fetcher.get_ledger_transactions(
+            company_name=request.company_name,
+            ledger_name=request.ledger_name
         )
         return {"status": "success", "details": result}
     except Exception as e:

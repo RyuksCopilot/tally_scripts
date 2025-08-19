@@ -289,3 +289,32 @@ class TallyVoucherUpdater:
             raise RuntimeError("Updated voucher creation failed. Old voucher restored.")
 
         return {"response": "Voucher updated successfully"}
+   
+    def delete_voucher(self, old_lookup: dict):
+        """
+        Update voucher transactionally: delete old, create new, restore if needed.
+        """
+
+        # Step 1: Resolve RemoteID and fetch full old voucher details
+        old_voucher_full = self.find_remote_id(old_lookup["company_name"], old_lookup)
+        
+        if not old_voucher_full:
+            raise RuntimeError("Could not resolve old voucher. Aborting update.")
+
+        remote_id = old_voucher_full["remote_id"]
+        
+        if not remote_id:
+            raise RuntimeError("Could not resolve RemoteID for old voucher. Aborting update.")
+
+
+        # Step 2: Delete old voucher
+        delete_xml = self.build_delete_xml(old_lookup["company_name"], remote_id, old_lookup["voucher_type"])
+        delete_response = self.post_to_tally(delete_xml)
+
+        if not delete_response or delete_response.status_code != 200:
+            raise RuntimeError("Failed to connect to Tally during deletion.")
+
+        if "<DELETED>0</DELETED>" in delete_response.text:
+            raise RuntimeError("Voucher not found or could not be deleted. Aborting update.")
+
+        return {"response": "Voucher deleted successfully"}
