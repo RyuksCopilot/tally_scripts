@@ -3,8 +3,11 @@ from routes.createLedgerRoutes import router as ledger_router
 from routes.trialBalanceRoutes import router as trial_balance_router
 from routes.createVoucherRoutes import router as voucher_router
 from routes.balanceSheetRoutes import router as balance_sheet_router
+from routes.groupRoutes import router as group_router
+
 app = FastAPI()
 
+app.include_router(group_router, prefix="/api", tags=["Group Management"])
 app.include_router(ledger_router, prefix="/api", tags=["Ledger Management"])
 app.include_router(trial_balance_router, prefix="/api", tags=["Trial Balance"])
 app.include_router(voucher_router, prefix="/api", tags=["Voucher Management"])
