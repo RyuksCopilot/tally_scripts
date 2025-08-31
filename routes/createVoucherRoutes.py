@@ -1,10 +1,46 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional,List
 from services.createVoucherService import TallyVoucherManager
 from services.updateVoucherService import TallyVoucherUpdater
 from services.transactionLedgerService import TallyLedgerFetcher
+from services.createInventoryVoucherService import TallyInventoryVoucherManager
+
 router = APIRouter()
+
+
+
+class InventoryItem(BaseModel):
+    name: str
+    qty: float
+    rate: float
+    unit: str
+
+
+class InventoryVoucherRequest(BaseModel):
+    tally_url: str
+    company_name: str
+    party_ledger: str
+    purchase_ledger: str
+    items: List[InventoryItem]
+    date: str  # YYYYMMDD
+    narration: Optional[str] = None
+    voucher_type: str = "Purchase"
+    voucher_guid: Optional[str] = None
+
+
+@router.post("/voucher/inventory/create")
+def create_inventory_voucher(request: InventoryVoucherRequest):
+    try:
+        inventory_manager = TallyInventoryVoucherManager(request.tally_url)
+        result = inventory_manager.save_voucher(request.dict(exclude={"tally_url"}), action="Create")
+        if "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
+        return {"message": "Inventory Purchase Voucher processed successfully", "data": result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 class VoucherRequest(BaseModel):
     tally_url: str
