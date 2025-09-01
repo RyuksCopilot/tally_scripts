@@ -5,9 +5,46 @@ from services.createVoucherService import TallyVoucherManager
 from services.updateVoucherService import TallyVoucherUpdater
 from services.transactionLedgerService import TallyLedgerFetcher
 from services.createInventoryVoucherService import TallyInventoryVoucherManager
+from services.inventorySalesVoucherService import TallySalesVoucherManager
 
 router = APIRouter()
 
+
+class Item(BaseModel):
+    name: str
+    qty: float
+    rate: float
+    unit: str
+
+class SalesVoucherRequest(BaseModel):
+    tally_url: str = "http://localhost:9000"
+    company_name: str
+    customer_ledger: str
+    sales_ledger: str
+    items: list[Item]
+    date: str  # Format YYYYMMDD
+    narration: str | None = None
+
+
+@router.post("/create-sales-voucher")
+def create_sales_voucher(request: SalesVoucherRequest):
+    try:
+        sales_manager = TallySalesVoucherManager(request.tally_url)
+        data = {
+            "company_name": request.company_name,
+            "customer_ledger": request.customer_ledger,
+            "sales_ledger": request.sales_ledger,
+            "items": [item.dict() for item in request.items],
+            "date": request.date,
+            "narration": request.narration,
+        }
+
+        result = sales_manager.save_voucher(data, action="Create")
+        return {"message": "Sales voucher created successfully", "data": result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 class InventoryItem(BaseModel):
@@ -29,7 +66,7 @@ class InventoryVoucherRequest(BaseModel):
     voucher_guid: Optional[str] = None
 
 
-@router.post("/voucher/inventory/create")
+@router.post("/voucher/purchase-inventory/create")
 def create_inventory_voucher(request: InventoryVoucherRequest):
     try:
         inventory_manager = TallyInventoryVoucherManager(request.tally_url)
