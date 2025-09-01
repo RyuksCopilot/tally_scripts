@@ -25,28 +25,6 @@ class SalesVoucherRequest(BaseModel):
     date: str  # Format YYYYMMDD
     narration: str | None = None
 
-
-@router.post("/create-sales-voucher")
-def create_sales_voucher(request: SalesVoucherRequest):
-    try:
-        sales_manager = TallySalesVoucherManager(request.tally_url)
-        data = {
-            "company_name": request.company_name,
-            "customer_ledger": request.customer_ledger,
-            "sales_ledger": request.sales_ledger,
-            "items": [item.dict() for item in request.items],
-            "date": request.date,
-            "narration": request.narration,
-        }
-
-        result = sales_manager.save_voucher(data, action="Create")
-        return {"message": "Sales voucher created successfully", "data": result}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 class InventoryItem(BaseModel):
     name: str
     qty: float
@@ -65,6 +43,65 @@ class InventoryVoucherRequest(BaseModel):
     voucher_type: str = "Purchase"
     voucher_guid: Optional[str] = None
 
+class VoucherRequest(BaseModel):
+    tally_url: str
+    company_name: str
+    from_ledger: str
+    to_ledger: str
+    amount: float
+    voucher_type: str
+    date: str  # Format: YYYYMMDD
+    narration: Optional[str] = None
+    voucher_guid: Optional[str] = None
+
+class VoucherData(BaseModel):
+    company_name: Optional[str] = None
+    from_ledger: Optional[str] = None
+    to_ledger: Optional[str] = None
+    amount: Optional[float] = None
+    voucher_type: Optional[str] = None
+    date: Optional[str] = None
+    narration: Optional[str] = None
+
+class VoucherUpdateRequest(BaseModel):
+    tally_url: str
+    old_voucher: VoucherData
+    new_voucher: VoucherData
+
+class VoucherTransactionsRequest(BaseModel):
+    tally_url: str
+    company_name: str
+    ledger_name :str
+
+class VoucherDeleteRequest(BaseModel):
+    tally_url: str
+    old_voucher: VoucherData
+
+@router.post("/create-sales-voucher")
+def create_sales_voucher(request: SalesVoucherRequest):
+    try:
+        sales_manager = TallySalesVoucherManager(request.tally_url)
+        data = {
+            "company_name": request.company_name,
+            "customer_ledger": request.customer_ledger,
+            "sales_ledger": request.sales_ledger,
+            "items": [item.dict() for item in request.items],
+            "date": request.date,
+        }
+        # Add narration only if provided
+        if request.narration is not None:
+            data["narration"] = request.narration
+
+        result = sales_manager.save_voucher(data, action="Create")
+        return {"message": "Sales voucher created successfully", "data": result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
 
 @router.post("/voucher/purchase-inventory/create")
 def create_inventory_voucher(request: InventoryVoucherRequest):
@@ -79,16 +116,7 @@ def create_inventory_voucher(request: InventoryVoucherRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-class VoucherRequest(BaseModel):
-    tally_url: str
-    company_name: str
-    from_ledger: str
-    to_ledger: str
-    amount: float
-    voucher_type: str
-    date: str  # Format: YYYYMMDD
-    narration: Optional[str] = None
-    voucher_guid: Optional[str] = None
+
 
 @router.post("/voucher/create")
 def create_voucher(data: VoucherRequest):
@@ -102,19 +130,7 @@ def create_voucher(data: VoucherRequest):
         raise HTTPException(status_code=400, detail=str(e))
     
     
-class VoucherData(BaseModel):
-    company_name: Optional[str] = None
-    from_ledger: Optional[str] = None
-    to_ledger: Optional[str] = None
-    amount: Optional[float] = None
-    voucher_type: Optional[str] = None
-    date: Optional[str] = None
-    narration: Optional[str] = None
 
-class VoucherUpdateRequest(BaseModel):
-    tally_url: str
-    old_voucher: VoucherData
-    new_voucher: VoucherData
     
     
 @router.post("/voucher/update")
@@ -129,10 +145,6 @@ def update_voucher(request: VoucherUpdateRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-class VoucherDeleteRequest(BaseModel):
-    tally_url: str
-    old_voucher: VoucherData
-    
 
 @router.post("/voucher/delete")
 def delete_voucher(request: VoucherDeleteRequest):
@@ -145,10 +157,7 @@ def delete_voucher(request: VoucherDeleteRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-class VoucherTransactionsRequest(BaseModel):
-    tally_url: str
-    company_name: str
-    ledger_name :str
+
     
 
 @router.post("/voucher/transactions")
