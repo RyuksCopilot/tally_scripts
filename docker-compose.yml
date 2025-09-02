@@ -5,7 +5,7 @@ services:
     build: .
     container_name: tally-scripts
     ports:
-      - "8002:8000"
+      - "8000:8000"
     volumes:
       - .:/app # Mount local code into container (great for development)
     extra_hosts:
