@@ -31,7 +31,7 @@ def create_stock_item(request: StockItemRequest):
 class StockJournalRequest(BaseModel):
     tally_url: str
     company_name: str
-    narration: str
+    narration: Optional[str]
     item_name: str
     qty: float
     unit: str
