@@ -41,6 +41,7 @@ class StockJournalRequest(BaseModel):
 
 @router.post("/inventory/journal/create")
 def create_stock_journal(request: StockJournalRequest):
+    "add -ve sign before quantity to add to the stock and no sign to remove from stock"
     try:
         manager = TallyInventoryManagement(request.tally_url)
         result = manager.create_stock_journal(
