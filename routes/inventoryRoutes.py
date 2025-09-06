@@ -55,3 +55,18 @@ def create_stock_journal(request: StockJournalRequest):
         return {"message": "Stock Journal created successfully", "data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class StockItemsRequest(BaseModel):
+    tally_url: str
+    company_name: str
+
+
+@router.post("/inventory/items")
+def get_all_stock_items(request: StockItemsRequest):
+    try:
+        manager = TallyInventoryManagement(request.tally_url)
+        stock_items = manager.fetch_all_stock_items(request.company_name)
+        return {"items": stock_items}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
